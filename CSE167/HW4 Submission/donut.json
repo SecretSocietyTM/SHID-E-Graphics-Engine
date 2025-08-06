@@ -1,0 +1,28 @@
+{
+    "camera":
+    {
+        "resolution": [800, 600],
+        "transform": [
+            {
+                "lookat":
+                {
+                    "position": [10, -10, 0],
+                    "target": [0, 0, 0],
+                    "up": [0, 0, 1]
+                }
+            }
+        ],
+        "s": 0.4,
+        "z_near": 0.1,
+        "z_far": 20
+    },
+    "background": [
+        0.0, 0.7, 0.9
+    ],
+    "objects": [
+        {
+            "filename": "donut.ply"
+        }
+    ]
+}
+
