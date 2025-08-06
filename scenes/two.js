@@ -1,7 +1,7 @@
-import {Vec2, Vec3} from "../util/vector.js";
+import {Vec3} from "../util/vector.js";
 import { Color } from "../util/color.js";
 
-const cube = {
+export default{
     vertices: [
         new Vec3(-0.492931, 0.128937, -10.741019), 
         new Vec3(0.025111, -1.847709, -9.584261), 
@@ -29,5 +29,3 @@ const cube = {
      new Color(0.8, 0.2, 0.8), new Color(0.8, 0.2, 0.8)
     ]
 };
-
-export const meshes = [cube];

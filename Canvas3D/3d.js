@@ -6,10 +6,9 @@ import { ZBuffer } from "../util/zbuffer.js";
 import * as hlp from "../util/helper.js";
 import * as prs from "../util/parser.js";
 
-import * as one from "../scenes/one.js";
-import * as two from "../scenes/two.js";
-
-import { two_shapes } from "../scenes/two_shapes.js";
+import triangles from "../scenes/one.js";
+import cube from "../scenes/two.js";
+import scenes from "../scenes/draw3scenes.js";
 
 const canvas = document.getElementById("canvas");
 
@@ -129,7 +128,6 @@ function draw2(supersample, scene) {
 
 function draw3(supersample, scene) {
     let scn = prs.parseScene(scene);
-    console.log(scn);
 
     let width = scn.camera.resolution.x;
     let height = scn.camera.resolution.y;
@@ -219,13 +217,13 @@ function run(draw, supersample, scene) {
     let start = performance.now();
     switch (draw) {
         case 1: 
-            draw1(supersample, one.triangles[scene]);
+            draw1(supersample, triangles[scene]);
             break;
         case 2:
-            draw2(supersample, two.meshes[scene]);
+            draw2(supersample, cube);
             break;
         case 3:
-            draw3(supersample, two_shapes);
+            draw3(supersample, scenes[scene]);
             break;
     }
     const end = performance.now();
@@ -233,4 +231,4 @@ function run(draw, supersample, scene) {
 }
 
 
-run(2, 1, 0);
+run(3, 1, 3);

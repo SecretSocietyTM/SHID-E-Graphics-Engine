@@ -1,10 +1,7 @@
-import {Vec2, Vec3} from "../util/vector.js";
-import { Color } from "../util/color.js";
-
-export const two_shapes = {
+export default {
     camera:
     {
-        resolution: new Vec2(640, 480),
+        resolution: [640, 480],
         transform: 
             {
                 lookat:
@@ -17,7 +14,7 @@ export const two_shapes = {
         s: 1,
         z_near: 1e-6
     },
-    background: new Color(0.5),
+    background: [0.5, 0.5, 0.5],
     objects: 
         {
             vertices: [

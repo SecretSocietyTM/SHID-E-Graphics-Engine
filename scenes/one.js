@@ -1,7 +1,7 @@
-import {Vec2, Vec3} from "../util/vector.js";
+import {Vec3} from "../util/vector.js";
 import { Color } from "../util/color.js";
 
-export const triangles = [
+export default [
 {
     color: new Color(255, 0, 0),
     alpha: 255,

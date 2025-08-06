@@ -1,5 +1,3 @@
-import { triangles } from "../scenes/one.js";
-import { Color } from "../util/color.js";
 import { vec, Vec2, Vec3, Vec4 } from "./vector.js";
 
 export function withinBounds(triangle, p) {

@@ -3,6 +3,84 @@ import { vec, Vec2, Vec3, Vec4 } from "./vector.js";
 import { Matrix3x3, Matrix4x4 } from "./matrix.js";
 import * as hlp from "../util/helper.js";
 
+/**
+ * Takes a stringified ply file and returns a mesh 
+ * for insertion into a scene.
+ *
+ * @param {string} ply
+ * @returns {object} mesh to be inserted into a scene
+ */
+function parsePLY(ply) {
+    // start by breaking string up by presence of new line
+    const buf = ply.split("\n");
+
+    let mesh = {
+        vertices: [],
+        vertex_colors: [],
+        faces: []
+    };
+
+    // dont actually do anything with these...
+    let vertex_count;
+    let face_count;
+
+    // start by reading header
+    let i = 0;
+    let cur = buf[i];
+    let color_index = -1;
+    let begin_color_index = false;
+    while (cur !== "end_header") {
+        if (begin_color_index) {
+            color_index++;
+        }
+        i++;
+        cur = buf[i];
+        if (cur.includes("element vertex")) {
+            begin_color_index = true;
+            vertex_count = cur.split(" ")[2];
+        }
+        
+        if (cur.includes("element face")) {
+            face_count = cur.split(" ")[2];
+        }
+        if (cur.includes("red")) {
+            begin_color_index = false;
+        }
+    }
+
+    // parse up the faces definition (length of 4)
+    i++;
+    cur = buf[i];
+    while (cur.split(" ").length !== 4) {
+        let vertex_info = cur.split(" ");
+        mesh.vertices.push(new Vec3(
+            vertex_info[0],
+            vertex_info[1],
+            vertex_info[2]
+        ));
+        mesh.vertex_colors.push(new Color(
+            vertex_info[color_index + 0],
+            vertex_info[color_index + 1],
+            vertex_info[color_index + 2]
+        ));
+        i++;
+        cur = buf[i];
+    }
+
+    while (cur !== "") {
+        let face_info = cur.split(" ");
+        mesh.faces.push(new Vec3(
+            face_info[1],
+            face_info[2],
+            face_info[3]
+        ));
+        i++;
+        cur = buf[i];
+    }
+
+    return mesh;
+}
+
 function parseTransformation(object) {
     let F = Matrix4x4.identity();
 
@@ -121,6 +199,7 @@ function parseTransformation(object) {
     return F;
 }
 
+
 export function parseScene(scene) {
     let result = {
         camera: {},
@@ -138,7 +217,7 @@ export function parseScene(scene) {
         throw new Error("Camera does not contain the field \"resolution\".");
     }
 
-    result.camera.resolution = res;
+    result.camera.resolution = new Vec2(res[0], res[1]);
     result.camera.cam_to_world = parseTransformation(camera);
     result.camera.s = 1;
     if (camera.s) {
@@ -152,44 +231,46 @@ export function parseScene(scene) {
     result.bg_color = new Color(255);
     let background = scene.background;
     if (background) {
-        result.bg_color = background;
+        result.bg_color = new Color(background[0], background[1], background[2]);
     }
     
     let mesh = {};
     let objects = scene.objects;
+    if ("filename" in objects) {
+        mesh = parsePLY(objects.filename);
+    } else {
+        let vertices = objects.vertices;
+        let num_vertices = vertices.length / 3;
+        mesh.vertices = new Array(num_vertices);
+        for (let i = 0; i < num_vertices; i++) {
+            mesh.vertices[i] = new Vec3(
+                vertices[3 * i + 0], 
+                vertices[3 * i + 1], 
+                vertices[3 * i + 2]);
+        }
 
-    let vertices = objects.vertices;
-    let num_vertices = vertices.length / 3;
-    mesh.vertices = new Array(num_vertices);
-    for (let i = 0; i < num_vertices; i++) {
-        mesh.vertices[i] = new Vec3(
-            vertices[3 * i + 0], 
-            vertices[3 * i + 1], 
-            vertices[3 * i + 2]);
+        let vertex_colors = objects.vertex_colors;
+        mesh.vertex_colors = new Array(num_vertices);
+        for (let i = 0; i < num_vertices; i++) {
+            mesh.vertex_colors[i] = new Color(
+                vertex_colors[3 * i + 0],
+                vertex_colors[3 * i + 1],
+                vertex_colors[3 * i + 2]);
+        }
+
+        let faces = objects.faces;
+        let num_faces = faces.length / 3;
+        mesh.faces = new Array(num_faces);
+        for (let i = 0; i < num_faces; i++) {
+            mesh.faces[i] = new Vec3(
+                faces[3 * i + 0],
+                faces[3 * i + 1],
+                faces[3 * i + 2]);
+        }
     }
 
-    let faces = objects.faces;
-    let num_faces = faces.length / 3;
-    mesh.faces = new Array(num_faces);
-    for (let i = 0; i < num_faces; i++) {
-        mesh.faces[i] = new Vec3(
-            faces[3 * i + 0],
-            faces[3 * i + 1],
-            faces[3 * i + 2]);
-    }
-
-    let vertex_colors = objects.vertex_colors;
-    mesh.vertex_colors = new Array(num_vertices);
-    for (let i = 0; i < num_vertices; i++) {
-        mesh.vertex_colors[i] = new Color(
-            vertex_colors[3 * i + 0],
-            vertex_colors[3 * i + 1],
-            vertex_colors[3 * i + 2]);
-    }
     mesh.model_matrix = parseTransformation(objects);
     result.mesh = mesh;
 
-    console.log(result.camera.cam_to_world);
-    console.log(result.mesh.model_matrix);
     return result;
 }
