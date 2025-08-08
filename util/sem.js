@@ -18,6 +18,7 @@ Matrix4x4,
 
 
 /**
+ * Creates a rotation matrix and applies it to the provided matrix.
  * 
  * @param {Matrix4x4} matrix 
  * @param {*} angle in radians
@@ -61,6 +62,23 @@ rotate(matrix, angle, axis) {
 
     matrix = m.multiply(matrix);
     return matrix
+},
+
+/**
+ * Creates a translation matrix and applies it to the provided matrix.
+ * 
+ * @param {Matrix4x4} matrix 
+ * @param {Vec3} translation 
+ */
+translate(matrix, translation) {
+    let m = Matrix4x4.identity();
+
+    m.set(0, 3, translation.x);
+    m.set(1, 3, translation.y);
+    m.set(2, 3, translation.z);
+
+    matrix = m.multiply(matrix);
+    return matrix;
 }
 
 }

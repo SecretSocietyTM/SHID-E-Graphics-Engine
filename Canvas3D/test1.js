@@ -1,0 +1,109 @@
+import SE from "../se/se.js";
+import sem from "../util/sem.js";
+
+import scenes from "../scenes/draw3scenes.js";
+import * as prs from "../util/parser.js";
+
+const fps_span = document.getElementById("fps");
+
+// TODO: similar to GLWindow, add some function to SE that 
+// creates a canvas element and just puts it in some target container
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+//  TODO: add some UI for setting these on the fly
+// global init variables 
+let scn = prs.parseScene(scenes[2]);
+canvas.setAttribute("width", scn.camera.resolution.x);
+canvas.setAttribute("height", scn.camera.resolution.y);
+
+
+
+let se = new SE(ctx);
+se.setScene(scn);
+
+const second = 1000;
+
+let stop_render = false;
+let angle = 0;
+let sign = 1;
+let x = 0;
+let y = 1;
+let z = 0;
+
+
+let view = se.getViewMatrix();
+
+document.addEventListener("keydown", (e) => { 
+    if (e.key === "Escape") stop_render = true;
+    else if (e.key === "Enter") {
+        stop_render = false;
+        renderLoop();
+    } else if (e.key === " ") {
+        if (sign === -1) sign = 1;
+        else sign = -1;
+
+    // rotation axis keys
+    } else if (e.key === "x") {
+        x = 1;
+        y = 0;
+        z = 0;
+    } else if (e.key === "y") {
+        x = 0;
+        y = 1;
+        z = 0;
+    } else if (e.key === "z") {
+        x = 0;
+        y = 0;
+        z = 1;
+    } 
+    
+    // object movement keys
+    else if (e.key === "a") {
+        view = sem.translate(view, new sem.Vec3(0.01, 0, 0));
+    } else if (e.key === "d") {
+        view = sem.translate(view, new sem.Vec3(-0.01, 0, 0));
+    } else if (e.key === "w") {
+        view = sem.translate(view, new sem.Vec3(0, -0.01, 0));
+    } else if (e.key === "s") {
+        view = sem.translate(view, new sem.Vec3(0, 0.01, 0));
+    }
+});
+
+function renderLoop() {
+    if (stop_render) return;
+
+    angle += sign * 0.03;
+
+    let model = sem.Matrix4x4.identity();
+   
+    model = sem.rotate(model, angle, new sem.Vec3(x, y, z));
+
+    se.setModelMatrix(model);
+    se.setViewMatrix(view);
+
+
+    // 2. Draw the updated scene
+    let start = performance.now();
+    se.renderMesh();
+    const end = performance.now();
+    let render_time = end - start;
+    console.log(`renderTriangles() took ${render_time} ms`);
+
+    let fps = second / render_time;
+    fps_span.textContent = fps;
+
+    requestAnimationFrame(renderLoop);
+}
+
+/* renderLoop(); */
+
+
+let start = performance.now();
+/* se.renderMeshTestBench(); */
+
+se.renderMesh();
+/* se.renderMeshFasterTest(); */
+const end = performance.now();
+let render_time = end - start;
+console.log(`renderTriangles() took ${render_time} ms`);

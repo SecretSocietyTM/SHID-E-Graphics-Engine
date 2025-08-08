@@ -231,7 +231,7 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "a") angle += 0.1;
     else if (e.key === "d") angle -= 0.1;
     else return;
-    let scn = prs.parseScene(scenes[4]);
+    let scn = prs.parseScene(scenes[2]);
     let supersample = 1;
     canvas.setAttribute("width", scn.camera.resolution.x);
     canvas.setAttribute("height", scn.camera.resolution.y);
@@ -239,7 +239,7 @@ document.addEventListener("keydown", (e) => {
 
     let se = new SE(ctx, supersample, scn);
 
-    se.rotate(angle, new Vec3(0, 0, 1));
+    se.rotate(angle, new Vec3(0, 1, 0));
 
     let start = performance.now();
     se.renderTriangles(); 

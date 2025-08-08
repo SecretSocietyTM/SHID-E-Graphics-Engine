@@ -26,7 +26,7 @@ export class Image3 {
 
     zeroes() {
         for (let i = 0; i < this.img.data.length; i+=4) {
-            this.img.data[i-1] = 255;
+            this.img.data[i + 3] = 255;
         }
     }
 }

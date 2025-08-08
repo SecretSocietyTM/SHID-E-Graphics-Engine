@@ -8,7 +8,7 @@ export default {
             {
                 "lookat":
                 {
-                    "position": [2, 2, 2],
+                    "position": [0, 1, 3],
                     "target": [0, 0, 0],
                     "up": [0, 1, 0]
                 }
