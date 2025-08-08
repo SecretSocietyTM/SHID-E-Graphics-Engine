@@ -6,6 +6,9 @@ import { ZBuffer } from "../util/zbuffer.js";
 import * as hlp from "../util/helper.js";
 import * as prs from "../util/parser.js";
 
+import SE from "../util/se.js";
+import sem from "../util/sem.js";
+
 import triangles from "../scenes/one.js";
 import cube from "../scenes/two.js";
 import scenes from "../scenes/draw3scenes.js";
@@ -63,8 +66,6 @@ function draw1(supersample, triangle) {
     }
     ctx.putImageData(img.img, 0, 0);
 }
-
-
 
 function draw2(supersample, scene) {
     let width = 640;
@@ -212,6 +213,40 @@ function draw3(supersample, scene) {
     ctx.putImageData(img.img, 0, 0);
 }
 
+// simlpy using a new method of rendering 
+function draw4(supersample, scene) {
+    let scn = prs.parseScene(scene);
+    canvas.setAttribute("width", scn.camera.resolution.x);
+    canvas.setAttribute("height", scn.camera.resolution.y);
+    const ctx = canvas.getContext("2d");
+
+
+    let se = new SE(ctx, supersample, scn);
+
+    se.renderTriangles();
+}
+
+let angle = 0;
+document.addEventListener("keydown", (e) => {
+    if (e.key === "a") angle += 0.1;
+    else if (e.key === "d") angle -= 0.1;
+    else return;
+    let scn = prs.parseScene(scenes[4]);
+    let supersample = 1;
+    canvas.setAttribute("width", scn.camera.resolution.x);
+    canvas.setAttribute("height", scn.camera.resolution.y);
+    const ctx = canvas.getContext("2d");
+
+    let se = new SE(ctx, supersample, scn);
+
+    se.rotate(angle, new Vec3(0, 0, 1));
+
+    let start = performance.now();
+    se.renderTriangles(); 
+    const end = performance.now();
+    console.log(`renderTriangles() took ${end - start} ms`);
+});
+
 
 function run(draw, supersample, scene) {
     let start = performance.now();
@@ -225,10 +260,15 @@ function run(draw, supersample, scene) {
         case 3:
             draw3(supersample, scenes[scene]);
             break;
+        case 4:
+            draw4(supersample, scenes[scene]);
+            break;
+        default:
+            break;
     }
     const end = performance.now();
     console.log(`draw(${draw}) took ${end - start} ms`);
 }
 
 
-run(3, 1, 3);
+run(5, 1, 4);

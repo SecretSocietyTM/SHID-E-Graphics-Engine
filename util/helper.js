@@ -1,4 +1,5 @@
 import { vec, Vec2, Vec3, Vec4 } from "./vector.js";
+import { Matrix3x3, Matrix4x4 } from "../util/matrix.js";
 
 export function withinBounds(triangle, p) {
     let p0 = triangle.p0;
@@ -24,7 +25,7 @@ export function withinBounds(triangle, p) {
     return in_bounds;
 }
 
-export function computeBoundingBox(w, h, triangle) {
+export function computeBoundingBox(triangle, w, h) {
     let p0 = triangle.p0;
     let p1 = triangle.p1;
     let p2 = triangle.p2;
@@ -78,6 +79,47 @@ export function projectCamToScreen(w, h, s, pcs) {
     );
     return {p0, p1, p2};
 }
+
+export function perspective(triangle, w, h, s) {
+    let pcs_p0 = new Vec2(-(triangle.p0.x / triangle.p0.z), -(triangle.p0.y / triangle.p0.z));
+    let pcs_p1 = new Vec2(-(triangle.p1.x / triangle.p1.z), -(triangle.p1.y / triangle.p1.z));
+    let pcs_p2 = new Vec2(-(triangle.p2.x / triangle.p2.z), -(triangle.p2.y / triangle.p2.z));
+    
+    let a = w / h;
+    let p0 = new Vec2((
+        w * (pcs_p0.x + s*a) / (2*s*a)), 
+        h * (pcs_p0.y - s) / -(2*s)
+    );
+    let p1 = new Vec2((
+        w * (pcs_p1.x + s*a) / (2*s*a)), 
+        h * (pcs_p1.y - s) / -(2*s)
+    );
+    let p2 = new Vec2((
+        w * (pcs_p2.x + s*a) / (2*s*a)), 
+        h * (pcs_p2.y - s) / -(2*s)
+    );
+    return {p0, p1, p2};
+}
+
+
+export function modelToWorld(triangle, model) {
+    let p0 = model.multiplyV4(new Vec4(triangle.p0.x, triangle.p0.y, triangle.p0.z, 1));
+    let p1 = model.multiplyV4(new Vec4(triangle.p1.x, triangle.p1.y, triangle.p1.z, 1));
+    let p2 = model.multiplyV4(new Vec4(triangle.p2.x, triangle.p2.y, triangle.p2.z, 1));    
+
+    return {p0, p1, p2};
+}
+
+export function worldToCam(triangle, cam_to_world) {
+    let p0 = cam_to_world.inverse().multiplyV4(triangle.p0);
+    let p1 = cam_to_world.inverse().multiplyV4(triangle.p1);
+    let p2 = cam_to_world.inverse().multiplyV4(triangle.p2);
+
+    return {p0, p1, p2};
+}
+
+
+
 
 export function areaOfTriangle(triangle) {
     const p0 = new Vec3(triangle.p0.x, triangle.p0.y, 0);
