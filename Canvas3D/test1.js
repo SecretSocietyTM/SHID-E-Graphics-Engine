@@ -13,7 +13,7 @@ const ctx = canvas.getContext("2d");
 
 //  TODO: add some UI for setting these on the fly
 // global init variables 
-let scn = prs.parseScene(scenes[2]);
+let scn = prs.parseScene(scenes[3]);
 canvas.setAttribute("width", scn.camera.resolution.x);
 canvas.setAttribute("height", scn.camera.resolution.y);
 
@@ -88,7 +88,7 @@ function renderLoop() {
 
     // 2. Draw the updated scene
     let start = performance.now();
-    se.renderMesh();
+    se.renderMesh3();
     const end = performance.now();
     let render_time = end - start;
     render_second += render_time;
@@ -104,14 +104,46 @@ function renderLoop() {
 
     requestAnimationFrame(renderLoop);
 }
-renderLoop();
+
+/* renderLoop(); */
 
 
-/* let start = performance.now(); */
-/* se.renderMeshTestBench(); */
 
-/* se.renderMesh(); */
-/* se.renderMeshFasterTest();
-const end = performance.now();
-let render_time = end - start;
-console.log(`renderTriangles() took ${render_time} ms`); */
+
+
+let acc_time = 0;
+let count = 0;
+function renderTestBench() {
+    if (count === 100) {
+        console.log(Math.round(acc_time/100));
+        return;
+    }
+
+
+    let start = performance.now();
+    se.renderMesh3();
+    const end = performance.now();
+    let render_time = end - start;
+
+    acc_time += render_time;
+    count++;
+
+    requestAnimationFrame(renderTestBench);
+}
+
+renderTestBench()
+
+
+// 250 renders
+// se.renderMesh1() -> scene[2] = 19ms
+// se.renderMesh2() -> scene[2] = 18ms
+// se.renderMesh3() -> scene[2] = 18ms
+
+// se.renderMesh1() -> scene[4] = 15ms
+// se.renderMesh2() -> scene[4] = 14ms
+// se.renderMesh3() -> scene[4] =  8ms
+
+// 100 renders
+// se.renderMesh1() -> scene[3] = 149ms
+// se.renderMesh2() -> scene[3] = 146ms
+// se.renderMesh3() -> scene[3] = 140ms

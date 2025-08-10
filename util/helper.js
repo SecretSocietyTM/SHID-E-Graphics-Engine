@@ -25,6 +25,41 @@ export function withinBounds(triangle, p) {
     return in_bounds;
 }
 
+// makes use of precomputed edge functions that return A, B and C 
+// to check 
+export function withinBoundsEdgeFunction(edges, p) {
+    let pos_cnt = 0;
+    let neg_cnt = 0;
+    for (const edge of edges) {
+        if (edge.a * p.x + edge.b * p.y + edge.c >= 0) {
+            pos_cnt++;
+        } else {
+            neg_cnt++;
+        }
+    }
+    return (pos_cnt === 3 || neg_cnt === 3) ? true : false;
+}
+
+export function computeEdgeFunction(p0, p1) {
+    let a = p0.y - p1.y;
+    let b = p1.x - p0.x;
+    let c = p0.x * p1.y - p1.x * p0.y;
+    return {a, b, c};
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export function computeBoundingBox(triangle, w, h) {
     let p0 = triangle.p0;
     let p1 = triangle.p1;

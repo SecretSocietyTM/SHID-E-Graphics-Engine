@@ -167,14 +167,17 @@ renderMesh() {
     this.context.putImageData(this.img.img, 0, 0);
 }
 
-
-renderMeshTestBench() {
+/**
+ * RenderMeshOriginal
+ * Just a benchmark version of the above function to test against 
+ * renderMesh2 without the supersampling mumbojumbo
+ */
+renderMesh1() {
     this.img = new Image3(this.context, this.width, this.height);
     this.clearColor();
     const z_buf = new ZBuffer(this.width, this.height, this.supersample);
 
-    let first_row = 0;
-    for (let idx = 1; idx < 2/* this.faces.length */; idx++) {
+    for (let idx = 0; idx < this.faces.length; idx++) {
         let tri = {
             p0: this.vertices[this.faces[idx].x],
             p1: this.vertices[this.faces[idx].y],
@@ -189,62 +192,107 @@ renderMeshTestBench() {
         let world_tri = hlp.modelToWorld(tri, this.model);
         let cam_tri = hlp.worldToCam(world_tri, this.view);
 
-        if (cam_tri.p0.z < this.z_near &&
-            cam_tri.p1.z < this.z_near &&
-            cam_tri.p2.z < this.z_near) {
+        if (cam_tri.p0.z >= this.z_near ||
+            cam_tri.p1.z >= this.z_near ||
+            cam_tri.p2.z >= this.z_near) {
+            continue;
+        }
 
-            let screen_tri = hlp.perspective(cam_tri, this.width, this.height, this.s);
-            let bb = hlp.computeBoundingBox(screen_tri, this.width, this.height);
+        let screen_tri = hlp.perspective(cam_tri, this.width, this.height, this.s);
+        let bb = hlp.computeBoundingBox(screen_tri, this.width, this.height);
 
-            console.log(bb.top_left);
-            console.log(bb.bot_right);
-
-            for (let y = bb.top_left.y; y < bb.bot_right.y; y++) {
-                for (let x = bb.top_left.x; x < bb.bot_right.x; x++) {
-                    let color_sum = new Color(0, 0, 0);
-                    for (let j = 0; j < 1; j += this.frac * 2) {
-                        for (let i = 0; i < 1; i += this.frac * 2) {
-
-                            if (first_row <= 5) {
-                                console.log(`row: ${first_row}, (${x},${y})`);
-                            }
-
-                            let px_cntr = new Vec2(x + i + this.frac, y + j + this.frac);
-                            if (hlp.withinBounds(screen_tri, px_cntr)) {
-
-                                let {Z, color} = hlp.interpolatePoint(cam_tri, tri_colors, screen_tri, px_cntr);
-                                let subpx_idx = j * this.supersample + i * this.supersample_dimensions;
-                                
-                                if (Z < z_buf.get(x, y, subpx_idx)) {
-                                    z_buf.set(x, y, subpx_idx, Z);
-                                    color_sum.addTo(color);
-                                } else {
-                                    color_sum.addTo(this.img.get(x,y));
-                                }
-                            } else {
-                                color_sum.addTo(this.img.get(x, y));
-                                /* color_sum.addTo(new Color(155)); */
-                            }
-                        }
+        for (let y = bb.top_left.y; y < bb.bot_right.y; y++) {
+            for (let x = bb.top_left.x; x < bb.bot_right.x; x++) {
+                let px_cntr = new Vec2(x + 0.5, y + 0.5);
+                if (hlp.withinBounds(screen_tri, px_cntr)) {
+                    let {Z, color} = hlp.interpolatePoint(cam_tri, tri_colors, screen_tri, px_cntr);
+                    if (Z < z_buf.get(x, y, 1)) {
+                        z_buf.set(x, y, 1, Z);
+                        color.a = 255;
+                        this.img.put(x, y, color);
                     }
-                    let color_avg = color_sum.divide(this.supersample);
-                    color_avg.a = 255;
-                    this.img.put(x, y, color_avg);
                 }
-                first_row++;
+            }
+        }            
+    }
+    this.context.putImageData(this.img.img, 0, 0);
+}
+
+/**
+ * RenderMeshV2
+ * This renderer will make use of a different way of computing 
+ * whether a point is inside of the triangle using precomputed
+ * edge functions: cross(p2-p1, p-p1)
+ * 
+ * Also removes anti aliasing for now as it doesnt even work properly
+ */
+renderMesh2() {
+    this.img = new Image3(this.context, this.width, this.height);
+    this.clearColor();
+    const z_buf = new ZBuffer(this.width, this.height, this.supersample);
+
+    for (let idx = 0; idx < this.faces.length; idx++) {
+        let tri = {
+            p0: this.vertices[this.faces[idx].x],
+            p1: this.vertices[this.faces[idx].y],
+            p2: this.vertices[this.faces[idx].z]
+        }
+        let tri_colors = {
+            p0: this.v_colors[this.faces[idx].x],
+            p1: this.v_colors[this.faces[idx].y],
+            p2: this.v_colors[this.faces[idx].z]
+        }
+
+        let world_tri = hlp.modelToWorld(tri, this.model);
+        let cam_tri = hlp.worldToCam(world_tri, this.view);
+
+        if (cam_tri.p0.z >= this.z_near ||
+            cam_tri.p1.z >= this.z_near ||
+            cam_tri.p2.z >= this.z_near) {
+            continue;
+        }
+
+        let screen_tri = hlp.perspective(cam_tri, this.width, this.height, this.s);
+        let bb = hlp.computeBoundingBox(screen_tri, this.width, this.height);
+
+        let edges = [
+            hlp.computeEdgeFunction(screen_tri.p0, screen_tri.p1),
+            hlp.computeEdgeFunction(screen_tri.p1, screen_tri.p2),
+            hlp.computeEdgeFunction(screen_tri.p2, screen_tri.p0)
+        ];
+
+        for (let y = bb.top_left.y; y < bb.bot_right.y; y++) {
+            for (let x = bb.top_left.x; x < bb.bot_right.x; x++) {
+                let px_cntr = new Vec2(x + 0.5, y + 0.5);
+                if (hlp.withinBoundsEdgeFunction(edges, px_cntr)) {
+                    let {Z, color} = hlp.interpolatePoint(cam_tri, tri_colors, screen_tri, px_cntr);
+                    if (Z < z_buf.get(x, y, 1)) {
+                        z_buf.set(x, y, 1, Z);
+                        color.a = 255;
+                        this.img.put(x, y, color);
+                    }
+                }
             }
         }
     }
     this.context.putImageData(this.img.img, 0, 0);
 }
 
-renderMeshFasterTest() {
+
+
+/**
+ * RenderMeshV3
+ * This renderer will make use of a different way of computing 
+ * whether a point is inside of the triangle using precomputed
+ * edge functions: cross(p2-p1, p-p1), as well as edge stepping
+ * 
+ */
+renderMesh3() {
     this.img = new Image3(this.context, this.width, this.height);
     this.clearColor();
     const z_buf = new ZBuffer(this.width, this.height, this.supersample);
 
-    /* let first_row = 0; */
-    for (let idx = 0; idx < /* 2 */ this.faces.length; idx++) {
+    for (let idx = 0; idx < this.faces.length; idx++) {
         let tri = {
             p0: this.vertices[this.faces[idx].x],
             p1: this.vertices[this.faces[idx].y],
@@ -259,83 +307,56 @@ renderMeshFasterTest() {
         let world_tri = hlp.modelToWorld(tri, this.model);
         let cam_tri = hlp.worldToCam(world_tri, this.view);
 
-        let leftmost;
-        let rightmost;
+        if (cam_tri.p0.z >= this.z_near ||
+            cam_tri.p1.z >= this.z_near ||
+            cam_tri.p2.z >= this.z_near) {
+            continue;
+        }
 
-        if (cam_tri.p0.z < this.z_near &&
-            cam_tri.p1.z < this.z_near &&
-            cam_tri.p2.z < this.z_near) {
+        let screen_tri = hlp.perspective(cam_tri, this.width, this.height, this.s);
+        let bb = hlp.computeBoundingBox(screen_tri, this.width, this.height);
 
-            let screen_tri = hlp.perspective(cam_tri, this.width, this.height, this.s);
-            let bb = hlp.computeBoundingBox(screen_tri, this.width, this.height);
+        let edges = [
+            hlp.computeEdgeFunction(screen_tri.p0, screen_tri.p1),
+            hlp.computeEdgeFunction(screen_tri.p1, screen_tri.p2),
+            hlp.computeEdgeFunction(screen_tri.p2, screen_tri.p0)
+        ];
 
-            leftmost = bb.top_left.x;
-            rightmost = bb.bot_right.x;
-            /* console.log(bb.top_left);
-            console.log(bb.bot_right); */
+        for (let y = bb.top_left.y; y < bb.bot_right.y; y++) {
+            // Precompute edge function values for the *first pixel in the row*
+            let w0_row = edges[0].a * (bb.top_left.x + 0.5) + edges[0].b * (y + 0.5) + edges[0].c;
+            let w1_row = edges[1].a * (bb.top_left.x + 0.5) + edges[1].b * (y + 0.5) + edges[1].c;
+            let w2_row = edges[2].a * (bb.top_left.x + 0.5) + edges[2].b * (y + 0.5) + edges[2].c;
 
-            for (let y = bb.top_left.y; y < bb.bot_right.y; y++) {
-                let inside_triangle = false;
-                for (let x = leftmost; x < rightmost; x++) {
-                    let color_sum = new Color(0, 0, 0);
-                    for (let j = 0; j < 1; j += this.frac * 2) {
-                        for (let i = 0; i < 1; i += this.frac * 2) {
+            // Copy for stepping horizontally
+            let w0 = w0_row;
+            let w1 = w1_row;
+            let w2 = w2_row;
 
-                            /* if (first_row <= 5) {
-                                console.log(`row: ${first_row}, (${x},${y})`);
-                            } */
-
-
-                            let px_cntr = new Vec2(x + i + this.frac, y + j + this.frac);
-                            if (hlp.withinBounds(screen_tri, px_cntr)) {
-
-                                if (!inside_triangle) {
-                                    // left side of triangle hit for first time
-                                    // create a buffer zone from which to begin render form 
-
-                                    // this assigns either the leftmost x border
-                                    // or the first leftmost x value to be within bounds - 10
-                                    leftmost = Math.max(x - 5, bb.top_left.x);
-                                    inside_triangle = true;
-                                }
-
-                                /* if (first_row === 12) {
-                                    console.log(`(${x},${y})`);
-                                } */
-
-
-                                let {Z, color} = hlp.interpolatePoint(cam_tri, tri_colors, screen_tri, px_cntr);
-                                let subpx_idx = j * this.supersample + i * this.supersample_dimensions;
-                                
-                                if (Z < z_buf.get(x, y, subpx_idx)) {
-                                    z_buf.set(x, y, subpx_idx, Z);
-                                    color_sum.addTo(color);
-                                } else {
-                                    color_sum.addTo(this.img.get(x,y));
-                                }
-                            } else {
-
-                                if (inside_triangle) {
-                                    rightmost = Math.min(x + 5, bb.bot_right.x);
-                                    inside_triangle = false;
-                                }
-
-                                color_sum.addTo(this.img.get(x, y));
-                                /* color_sum.addTo(new Color(155)); */
-                            }
-                        }
+            for (let x = bb.top_left.x; x < bb.bot_right.x; x++) {
+                if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0)) {
+                    // Interpolate attributes & depth here
+                    let { Z, color } = hlp.interpolatePoint(cam_tri, tri_colors, screen_tri, new Vec2(x + 0.5, y + 0.5));
+                    if (Z < z_buf.get(x, y, 1)) {
+                        z_buf.set(x, y, 1, Z);
+                        color.a = 255;
+                        this.img.put(x, y, color);
                     }
-                    let color_avg = color_sum.divide(this.supersample);
-                    color_avg.a = 255;
-                    this.img.put(x, y, color_avg);
                 }
-                /* first_row++; */
+
+                // Step right → just add A for each edge
+                w0 += edges[0].a;
+                w1 += edges[1].a;
+                w2 += edges[2].a;
             }
-            this.context.putImageData(this.img.img, 0, 0);
+
+            // Step down → add B for each edge (when row changes)
+            w0_row += edges[0].b;
+            w1_row += edges[1].b;
+            w2_row += edges[2].b;
         }
     }
-    /* this.context.putImageData(this.img.img, 0, 0); */
+    this.context.putImageData(this.img.img, 0, 0);
 }
-
 
 }
