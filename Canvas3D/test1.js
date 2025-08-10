@@ -70,6 +70,9 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+let fraction_second = 4;
+let render_second = 0;
+let frames_rendered = 0;
 function renderLoop() {
     if (stop_render) return;
 
@@ -88,22 +91,27 @@ function renderLoop() {
     se.renderMesh();
     const end = performance.now();
     let render_time = end - start;
-    console.log(`renderTriangles() took ${render_time} ms`);
+    render_second += render_time;
+    frames_rendered++;
+    /* console.log(`renderTriangles() took ${render_time} ms`); */
+    if (render_second > (1000 / fraction_second)) { // 1000 = 1s
+        let fps = frames_rendered * fraction_second;
+        fps_span.textContent = fps;
 
-    let fps = second / render_time;
-    fps_span.textContent = fps;
+        render_second = 0;
+        frames_rendered = 0;
+    }
 
     requestAnimationFrame(renderLoop);
 }
+renderLoop();
 
-/* renderLoop(); */
 
-
-let start = performance.now();
+/* let start = performance.now(); */
 /* se.renderMeshTestBench(); */
 
-se.renderMesh();
-/* se.renderMeshFasterTest(); */
+/* se.renderMesh(); */
+/* se.renderMeshFasterTest();
 const end = performance.now();
 let render_time = end - start;
-console.log(`renderTriangles() took ${render_time} ms`);
+console.log(`renderTriangles() took ${render_time} ms`); */
