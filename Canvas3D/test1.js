@@ -114,14 +114,14 @@ function renderLoop() {
 let acc_time = 0;
 let count = 0;
 function renderTestBench() {
-    if (count === 100) {
-        console.log(Math.round(acc_time/100));
+    if (count === 50) {
+        console.log(Math.round(acc_time/50));
         return;
     }
 
 
     let start = performance.now();
-    se.renderMesh3();
+    se.renderMesh4();
     const end = performance.now();
     let render_time = end - start;
 
@@ -134,16 +134,22 @@ function renderTestBench() {
 renderTestBench()
 
 
+
 // 250 renders
 // se.renderMesh1() -> scene[2] = 19ms
 // se.renderMesh2() -> scene[2] = 18ms
 // se.renderMesh3() -> scene[2] = 18ms
+// se.renderMesh4() -> scene[2] = 18ms
 
-// se.renderMesh1() -> scene[4] = 15ms
-// se.renderMesh2() -> scene[4] = 14ms
-// se.renderMesh3() -> scene[4] =  8ms
+// 250 renders
+// se.renderMesh1() -> scene[1] = 37ms
+// se.renderMesh2() -> scene[1] = 35ms
+// se.renderMesh3() -> scene[1] = 34ms
+// se.renderMesh4() -> scene[1] = 37ms
 
-// 100 renders
-// se.renderMesh1() -> scene[3] = 149ms
-// se.renderMesh2() -> scene[3] = 146ms
-// se.renderMesh3() -> scene[3] = 140ms
+
+// 50 renders
+// se.renderMesh1() -> scene[3] = 156ms
+// se.renderMesh2() -> scene[3] = 156ms
+// se.renderMesh3() -> scene[3] = 148ms
+// se.renderMesh4() -> scene[3] = 146ms

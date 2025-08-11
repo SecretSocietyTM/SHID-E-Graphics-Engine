@@ -49,6 +49,16 @@ export function computeEdgeFunction(p0, p1) {
 
 
 
+export function verticesInsideTile(corners, triangle) {
+    let vertices = [triangle.p0, triangle.p1, triangle.p2];
+    for (const vertex of vertices) {
+        if (vertex.x >= corners[0].x && vertex.x <= corners[3].x &&
+            vertex.y >= corners[0].y && vertex.y <= corners[3].y) {
+            return true;
+        }
+    }
+    return false;
+} 
 
 
 
@@ -59,7 +69,9 @@ export function computeEdgeFunction(p0, p1) {
 
 
 
-
+// TODO: could probably make use of JS min and max functions
+// assuming that they don't just do a for loop as i do here, 
+// probably more efficient
 export function computeBoundingBox(triangle, w, h) {
     let p0 = triangle.p0;
     let p1 = triangle.p1;
@@ -85,6 +97,7 @@ export function computeBoundingBox(triangle, w, h) {
     y_min = (y_min < 0) ? 0 : y_min;
     y_max = (y_max > h) ? h : y_max;
 
+    // TODO: should be taking floor
     let top_left = new Vec2(Math.round(x_min), Math.round(y_min));
     let bot_right = new Vec2(Math.round(x_max), Math.round(y_max));
 

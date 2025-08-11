@@ -359,4 +359,122 @@ renderMesh3() {
     this.context.putImageData(this.img.img, 0, 0);
 }
 
+
+/**
+ * RenderMeshV4
+ * Hoped to increase speed by making use of tiles but the added complexity 
+ * just increases render time. Not sure how this would be optimized to not
+ * be so damn slow. Also doesn't properly render the images.
+ */
+renderMesh4() {
+    // make glob var
+    let tile_size = 8;
+
+    this.img = new Image3(this.context, this.width, this.height);
+    this.clearColor();
+    const z_buf = new ZBuffer(this.width, this.height, this.supersample);
+
+    for (let idx = 0; idx < this.faces.length; idx++) {
+        let tri = {
+            p0: this.vertices[this.faces[idx].x],
+            p1: this.vertices[this.faces[idx].y],
+            p2: this.vertices[this.faces[idx].z]
+        }
+        let tri_colors = {
+            p0: this.v_colors[this.faces[idx].x],
+            p1: this.v_colors[this.faces[idx].y],
+            p2: this.v_colors[this.faces[idx].z]
+        }
+
+        let world_tri = hlp.modelToWorld(tri, this.model);
+        let cam_tri = hlp.worldToCam(world_tri, this.view);
+
+        if (cam_tri.p0.z >= this.z_near ||
+            cam_tri.p1.z >= this.z_near ||
+            cam_tri.p2.z >= this.z_near) {
+            continue;
+        }
+
+        let screen_tri = hlp.perspective(cam_tri, this.width, this.height, this.s);
+
+        let tile_min_x = Math.floor(Math.min(screen_tri.p0.x, screen_tri.p1.x, screen_tri.p2.x) / tile_size);
+        let tile_min_y = Math.floor(Math.min(screen_tri.p0.y, screen_tri.p1.y, screen_tri.p2.y) / tile_size);
+        let tile_max_x = Math.floor(Math.max(screen_tri.p0.x, screen_tri.p1.x, screen_tri.p2.x) / tile_size) + 1;
+        let tile_max_y = Math.floor(Math.max(screen_tri.p0.y, screen_tri.p1.y, screen_tri.p2.y) / tile_size) + 1;
+
+        let edges = [
+            hlp.computeEdgeFunction(screen_tri.p0, screen_tri.p1),
+            hlp.computeEdgeFunction(screen_tri.p1, screen_tri.p2),
+            hlp.computeEdgeFunction(screen_tri.p2, screen_tri.p0)
+        ];
+
+        for (let y = tile_min_y ; y < tile_max_y; y++) {
+            for (let x = tile_min_x; x < tile_max_x; x++) {
+
+                // Tile pixel bounds
+                let min_x = x * tile_size;
+                let min_y = y * tile_size;
+                let max_x = min_x + tile_size 
+                let max_y = min_y + tile_size
+
+                // Test coverage at the tile's four corners
+                let corners = [
+                    {x: min_x, y: min_y},
+                    {x: max_x, y: min_y},
+                    {x: min_x, y: max_y},
+                    {x: max_x, y: max_y}
+                ];
+                
+                let inside_count = 0;
+
+                for (const corner of corners) {
+                    if (hlp.withinBoundsEdgeFunction(edges, corner)) {
+                        inside_count++;
+                    }
+                }
+                let vertex_inside = hlp.verticesInsideTile(corners, screen_tri);
+
+                let full_cover = false;
+                let full_outside = false;
+                let partial = false;
+
+                if (inside_count === 4) full_cover = true;
+                if (inside_count === 0) full_outside = true;
+                if (inside_count > 0 && inside_count < 4 || vertex_inside) partial = true;
+
+                if (full_cover) {
+                    for (let _y = min_y; _y < max_y; _y++) {
+                        for (let _x = min_x; _x < max_x; _x++) {
+                            let { Z, color } = hlp.interpolatePoint(cam_tri, tri_colors, screen_tri, new Vec2(_x + 0.5, _y + 0.5));
+                            if (Z < z_buf.get(_x, _y, 1)) {
+                                z_buf.set(_x, _y, 1, Z);
+                                color.a = 255;
+                                this.img.put(_x, _y, color);
+                            }                            
+                        }
+                    }                    
+                } else if (full_outside && !partial) {
+                    continue;
+                } else if (partial) {
+                    for (let _y = min_y; _y < max_y; _y++) {
+                        for (let _x = min_x; _x < max_x; _x++) {
+                            let px_cntr = new Vec2(_x + 0.5, _y + 0.5);
+                            if (hlp.withinBoundsEdgeFunction(edges, px_cntr)) {
+                                let {Z, color} = hlp.interpolatePoint(cam_tri, tri_colors, screen_tri, px_cntr);
+                                if (Z < z_buf.get(_x, _y, 1)) {
+                                    z_buf.set(_x, _y, 1, Z);
+                                    color.a = 255;
+                                    this.img.put(_x, _y, color);
+                                } 
+                            } 
+                        }
+                    }
+                }
+            }
+        }
+        /* this.context.putImageData(this.img.img, 0, 0); */
+    }
+    this.context.putImageData(this.img.img, 0, 0);
+}
+
 }
